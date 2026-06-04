@@ -1,50 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import StudyLoginPage from "./StudyLoginPage";
 import StudyNavbar from "./StudyNavbar";
 import TaskCard from "./TaskCard";
 
-
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const [tasks, setTasks] = useState([
-    {
-      title: "React Assignment",
-      description: "Complete Study Planner UI",
-      dueDate: "2026-06-05",
-    },
-    {
-      title: "Database Project",
-      description: "Connect MongoDB Backend",
-      dueDate: "2026-06-07",
-    },
-  ]);
+  const [tasks, setTasks] = useState([]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
 
-  const addTask = () => {
-    const newTask = {
-      title,
-      description,
-      dueDate
-    };
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
-    setTasks([
-      ...tasks,newTask
-    ]);
-
-    setTitle("");
-    setDescription("");
-    setDueDate("");
+  const fetchTasks = async () => {
+    try {
+      const res = await axios.get(" https://task-5d3f.onrender.com/tasks");
+      setTasks(res.data);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const deleteTask = (index) => {
-    setTasks(tasks.filter((_, i) => i !== index));
+  const addTask = async () => {
+    if (!title || !description || !dueDate) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    try {
+      const newTask = {
+        subject: title,
+        taskDetails: description,
+        deadline: dueDate,
+      };
+
+      const res = await axios.post(
+        " https://task-5d3f.onrender.com/tasks",
+        newTask
+      );
+
+      setTasks([...tasks, res.data]);
+
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(` https://task-5d3f.onrender.com/tasks/${id}`);
+
+      setTasks(tasks.filter((task) => task._id !== id));
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   if (!isLoggedIn) {
@@ -91,18 +111,25 @@ function App() {
             onChange={(e) => setDueDate(e.target.value)}
           />
 
-          <button className="btn btn-primary" onClick={addTask}>
+          <button
+            className="btn btn-primary"
+            onClick={addTask}
+          >
             Add Task
           </button>
         </div>
 
         <div className="row">
-          {tasks.map((task, index) => (
-            <div className="col-md-4" key={index}>
+          {tasks.map((task) => (
+            <div className="col-md-4 mb-3" key={task._id}>
               <TaskCard
-                task={task}
+                task={{
+                  title: task.subject,
+                  description: task.taskDetails,
+                  dueDate: task.deadline,
+                }}
                 isDarkMode={isDarkMode}
-                deleteTask={() => deleteTask(index)}
+                deleteTask={() => deleteTask(task._id)}
               />
             </div>
           ))}
